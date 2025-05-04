@@ -211,7 +211,7 @@ namespace ShowDamageNumber
             }
             else
             {
-                if (DamageNumberController.main.cursor >= DamageNumberController.main.recycleArray.Length && DamageNumberController.main.activeArray.Length >= ShowDamageNumberPlugin.MaxNumberCount.Value) // 不允许过多
+                if (DamageNumberController.main.cursor >= DamageNumberController.main.activeArray.Length && DamageNumberController.main.activeArray.Length >= ShowDamageNumberPlugin.MaxNumberCount.Value) // 不允许过多
                     return -1;
 
                 while (DamageNumberController.main.cursor >= DamageNumberController.main.activeArray.Length)

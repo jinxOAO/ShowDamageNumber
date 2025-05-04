@@ -16,7 +16,7 @@ namespace ShowDamageNumber
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(SkillSystem), "DamageObject")]
-        public static void OnDamageObject(ref SkillSystem __instance, int damage, int slice, ref SkillTarget target)
+        public static void OnDamageObject(ref SkillSystem __instance, int damage, int slice, ref SkillTarget target, ref SkillTarget caster)
         {
             if (!ShowDamageNumberPlugin.ShowDamage.Value)
                 return;
@@ -32,7 +32,24 @@ namespace ShowDamageNumber
                 return; // DamageGroundObject处理
             }
             float dmgf = (float)Math.Round(damage / 100f);
-            API.ShowDamage(dmgf, ref target);
+
+            // 下面这个是因为：用来生成恒星炮激光特效，设定了一个影子caster并输出一个1点伤害的激光，如果检测到符合影子caster的情况且不是恒星炮的伤害本体，不显示该caster造成的伤害
+            if (caster.id == 1 && caster.type == ETargetType.Craft && slice != 7 && damage <= 200) 
+            {
+                return;
+            }
+
+            if (slice == 7 && target.type == ETargetType.Enemy) // 恒星炮伤害每秒显示一次而非每帧都显示
+            {
+                if (GameMain.instance.timei % 60 == (target.id * 7) % 60) // 为了尽量错开多个恒星炮目标跳数字的时间
+                {
+                    API.ShowDamage(dmgf * 60, ref target);
+                }
+            }
+            else
+            {
+                API.ShowDamage(dmgf, ref target);
+            }
         }
 
         [HarmonyPostfix]
