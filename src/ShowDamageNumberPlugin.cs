@@ -20,7 +20,7 @@ namespace ShowDamageNumber
 
         public const string NAME = "ShowDamageNumber";
         public const string GUID = "com.GniMaerd.ShowDamageNumber";
-        public const string VERSION = "0.1.0";
+        public const string VERSION = "1.0.0";
 
         public static ConfigEntry<bool> ShowDamage;
         public static ConfigEntry<int> MaxNumberCount;
@@ -29,6 +29,10 @@ namespace ShowDamageNumber
         public static ConfigEntry<bool> IcarusShieldOnHitDamage;
         public static ConfigEntry<bool> AllyOnHitDamage;
         public static ConfigEntry<bool> VegetableOnHitDamage;
+
+        public static ConfigEntry<int> SmallTextSize;
+        public static ConfigEntry<int> MiddleTextSize;
+        public static ConfigEntry<int> BigTextSize;
 
         public void Awake()
         {
@@ -39,7 +43,15 @@ namespace ShowDamageNumber
             SpaceEnemyOnHitDamage = Config.Bind<bool>("config", "SpaceEnemyOnHitDamage", true, "Whether show the damage number when the space dark fog is hit. 是否显示太空黑雾的受击伤害数字。");
             IcarusShieldOnHitDamage = Config.Bind<bool>("config", "IcarusShieldOnHitDamage", false, "Whether show the damage number when the Icarus' shield is hit. 是否显示伊卡洛斯护盾的受击伤害数字。");
             AllyOnHitDamage = Config.Bind<bool>("config", "AllyOnHitDamage", false, "Whether show the damage number when the ally buildings or fleets are hit. 是否显示友方建筑或舰队的受击伤害数字。");
-            VegetableOnHitDamage = Config.Bind<bool>("config", "VegetableOnHitDamage", true, "Whether show the damage number when the . 是否显示地面杂物的受击伤害数字。");
+            VegetableOnHitDamage = Config.Bind<bool>("config", "VegetableOnHitDamage", true, "Whether show the damage number when the ground sundries are hit. 是否显示地面杂物的受击伤害数字。");
+
+            SmallTextSize = Config.Bind<int>("config", "SmallTextSize", 44, "Text size for minor damage. 较小伤害的文本大小。");
+            MiddleTextSize = Config.Bind<int>("config", "MiddleTextSize", 60, "Text size for normal damage. 普通伤害的文本大小。");
+            BigTextSize = Config.Bind<int>("config", "BigTextSize", 90, "Text size for major damage and critical strike damage. 较大伤害和暴击伤害的文本大小。");
+
+            DamageNumber.basicSmallFontSize2160p = SmallTextSize.Value;
+            DamageNumber.basicMidFontSize2160p = MiddleTextSize.Value;
+            DamageNumber.basicBigFontSize2160p = BigTextSize.Value;
 
             Harmony.CreateAndPatchAll(typeof(ShowDamageNumberPlugin));
             Harmony.CreateAndPatchAll(typeof(OnDamagePatcher));

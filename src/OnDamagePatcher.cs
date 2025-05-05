@@ -22,6 +22,8 @@ namespace ShowDamageNumber
                 return;
             if (GameMain.localPlanet != null && target.type != ETargetType.Player) // 在星球上时不显示太空受击伤害
                 return;
+            if (slice == 4)
+                return; // 深空来敌撕裂力场伤害不显示
             int astroId = target.astroId;
             if(astroId > 1000000)
             {
@@ -48,7 +50,12 @@ namespace ShowDamageNumber
             }
             else
             {
-                API.ShowDamage(dmgf, ref target);
+                if(slice == 2)
+                    API.ShowDamage(dmgf, ref target, EDmgType.Crit);
+                else if (slice == 3)
+                    API.ShowDamage(dmgf, ref target, EDmgType.Thornmail, ESizeMode.Auto, EColorMode.PresetPurple);
+                else
+                    API.ShowDamage(dmgf, ref target);
             }
         }
 
@@ -74,7 +81,12 @@ namespace ShowDamageNumber
             }
             else
             {
-                API.ShowDamageGround(dmgf, ref target, factory);
+                if (slice == 2)
+                    API.ShowDamageGround(dmgf, ref target, factory, EDmgType.Crit);
+                else if (slice == 3)
+                    API.ShowDamageGround(dmgf, ref target, factory, EDmgType.Thornmail, ESizeMode.Auto, EColorMode.PresetPurple);
+                else
+                    API.ShowDamageGround(dmgf, ref target, factory);
             }
         }
 
@@ -91,8 +103,14 @@ namespace ShowDamageNumber
             else if (GameMain.localPlanet.id != factory.planetId) // 与玩家不在同一个星球上，不显示
                 return;
 
-            float dmgf = (float)Math.Round(damage / 100f);
-            API.ShowDamageGround(dmgf, ref target, factory);
+            float dmgf = (float)Math.Round(damage / 100f); 
+            
+            if (slice == 2)
+                API.ShowDamageGround(dmgf, ref target, factory, EDmgType.Crit);
+            else if (slice == 3)
+                API.ShowDamageGround(dmgf, ref target, factory, EDmgType.Thornmail, ESizeMode.Auto, EColorMode.PresetPurple);
+            else
+                API.ShowDamageGround(dmgf, ref target, factory);
         }
 
 

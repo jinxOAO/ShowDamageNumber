@@ -79,6 +79,8 @@ namespace ShowDamageNumber
         {
             if (!ShowDamageNumberPlugin.ShowDamage.Value)
                 return null;
+
+
             bool show = false;
             VectorLF3 pos = VectorLF3.zero;
             Quaternion rot = Quaternion.identity;
@@ -153,9 +155,16 @@ namespace ShowDamageNumber
                     int index = ArrangeNewNormalIndex();
                     if (index < 0)
                         return null;
-                    DamageNumber dn = new DamageNumber(index, damage, pos, isGroundTarget, dmgType, sizeMode, colorMode);
-                    DamageNumberController.main.activeArray[index] = dn;
-                    return dn;
+                    if (DamageNumberController.main.activeArray[index] != null)
+                    {
+                        DamageNumberController.main.activeArray[index].SetForNewDamage(index, damage, pos, isGroundTarget, dmgType, sizeMode, colorMode);
+                    }
+                    else
+                    {
+                        DamageNumber dn = new DamageNumber(index, damage, pos, isGroundTarget, dmgType, sizeMode, colorMode);
+                        DamageNumberController.main.activeArray[index] = dn;
+                    }
+                    return DamageNumberController.main.activeArray[index];
                 }
                 else if (dmgType == EDmgType.Dot && targetId > 0)
                 {
@@ -168,11 +177,18 @@ namespace ShowDamageNumber
                         int index = ArrangeNewNormalIndex();
                         if (index < 0)
                             return null;
-                        DamageNumber dn = new DamageNumber(index, damage, pos, isGroundTarget, dmgType, sizeMode, colorMode);
-                        //dn.localEnemyId = targetId;
-                        DamageNumberController.main.activeArray[index] = dn;
-                        DamageNumberController.main.dotArray[targetId] = dn;
-                        return dn;
+                        if(DamageNumberController.main.activeArray[index] != null)
+                        {
+                            DamageNumberController.main.activeArray[index].SetForNewDamage(index, damage, pos, isGroundTarget, dmgType, sizeMode, colorMode);
+                        }
+                        else
+                        {
+                            DamageNumber dn = new DamageNumber(index, damage, pos, isGroundTarget, dmgType, sizeMode, colorMode);
+                            DamageNumberController.main.activeArray[index] = dn;
+                        }
+
+                        DamageNumberController.main.dotArray[targetId] = DamageNumberController.main.activeArray[index];
+                        return DamageNumberController.main.activeArray[index];
                     }
 
                 }
@@ -189,9 +205,16 @@ namespace ShowDamageNumber
             int index = ArrangeNewNormalIndex();
             if (index < 0)
                 return null;
-            DamageNumber dn = new DamageNumber(index, damage, Vector3.zero, false, EDmgType.ShieldRisist, ESizeMode.Auto, EColorMode.Auto);
-            DamageNumberController.main.activeArray[index] = dn;
-            return dn;
+            if (DamageNumberController.main.activeArray[index] != null)
+            {
+                DamageNumberController.main.activeArray[index].SetForNewDamage(index, damage, Vector3.zero, false, EDmgType.ShieldRisist, ESizeMode.Auto, EColorMode.Auto);
+            }
+            else
+            {
+                DamageNumber dn = new DamageNumber(index, damage, Vector3.zero, false, EDmgType.ShieldRisist, ESizeMode.Auto, EColorMode.Auto);
+                DamageNumberController.main.activeArray[index] = dn;
+            }
+            return DamageNumberController.main.activeArray[index];
         }
 
         public static bool WorldPointIntoScreen(Vector3 worldPoint, RectTransform rect, out Vector2 rectPoint)

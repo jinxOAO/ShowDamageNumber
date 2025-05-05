@@ -77,13 +77,14 @@ namespace ShowDamageNumber
 
         public static void RefreshDataWhenLoad()
         {
-            Debug.Log("\n\n\n\nRefresh on load / start.\n\n\n\n");
             ClearAllNumbers();
             main.lastPlanetId = -1;
         }
 
         public static void Update()
         {
+            //if(GameMain.instance != null)
+            //    GameTickUpdate(GameMain.instance.timei);
         }
 
         [HarmonyPostfix]
@@ -107,7 +108,7 @@ namespace ShowDamageNumber
 
                 for (int i = 0; i < main.cursor; i++)
                 {
-                    if (main.activeArray[i] != null)
+                    if (main.activeArray[i] != null && main.activeArray[i].index >= 0)
                         main.activeArray[i].Update();
                 }
                 //listForClearNull.Clear();
@@ -143,16 +144,17 @@ namespace ShowDamageNumber
         public static void ClearAllNumbers()
         {
             // 清理所有伤害数字
-            for (int i = 0; i < main.cursor; i++)
-            {
-                if (main.activeArray[i] != null)
-                    main.activeArray[i].Remove();
-            }
+            //for (int i = 0; i < main.cursor; i++)
+            //{
+            //    if (main.activeArray[i] != null && main.activeArray[i].index >= 0)
+            //        main.activeArray[i].Remove();
+            //}
 
-            main.dotArray.Clear();
-            main.cursor = 0;
-            main.recycleCursor = 0;
-            lastNFrameShdDmgTotal = 0;
+            //main.dotArray.Clear();
+            //main.cursor = 0;
+            //main.recycleCursor = 0;
+            //lastNFrameShdDmgTotal = 0;
+            ForceRemoveAllNumbers();
         }
 
         public static void ForceRemoveAllNumbers()
@@ -168,6 +170,11 @@ namespace ShowDamageNumber
                 {
                     i++;
                 }
+            }
+            int length = main.activeArray.Length;
+            for (int j = 0; j < length; j++)
+            {
+                main.activeArray[j] = null;
             }
             main.dotArray.Clear();
             main.cursor = 0;
