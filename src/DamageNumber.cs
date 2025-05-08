@@ -14,7 +14,6 @@ namespace ShowDamageNumber
         //public static GameObject normObj;
         public static GameObject glowingObj;
         public static GameObject glowingObjWithIcon;
-        public static Font defaultFont;
         public static Transform parentTrans;
         public static Color[] presetColors;
 
@@ -63,7 +62,6 @@ namespace ShowDamageNumber
             damageTextsObj.transform.localPosition = Vector3.zero;
             damageTextsObj.AddComponent<RectTransform>();
             parentTrans = damageTextsObj.transform;
-            defaultFont = GameObject.Find("UI Root/Overlay Canvas/In Game/Windows/Blueprint Browser/inspector-group/Scroll View/Viewport/Content/group-1/label").GetComponent<Text>().font;
 
             Text oriGlowingText = GameObject.Find("UI Root/Overlay Canvas/In Game/Windows/Replicator Window/queue-group/label").GetComponent<Text>();
 
