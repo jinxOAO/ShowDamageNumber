@@ -20,9 +20,10 @@ namespace ShowDamageNumber
 
         public const string NAME = "ShowDamageNumber";
         public const string GUID = "com.GniMaerd.ShowDamageNumber";
-        public const string VERSION = "1.0.0";
+        public const string VERSION = "1.0.2";
 
         public static ConfigEntry<bool> ShowDamage;
+        public static ConfigEntry<bool> LocalHideFar;
         public static ConfigEntry<int> MaxNumberCount;
         public static ConfigEntry<bool> GoundEnemyOnHitDamage;
         public static ConfigEntry<bool> SpaceEnemyOnHitDamage;
@@ -37,6 +38,7 @@ namespace ShowDamageNumber
         public void Awake()
         {
             ShowDamage = Config.Bind<bool>("config", "ShowDamage", true, "Whether show the damage number. 是否显示伤害数字。");
+            LocalHideFar = Config.Bind<bool>("config", "Local_HideFarDamageNumber", true, "Hide the Damage Number far from player when on a planet. 在行星上时，隐藏距离玩家较远的伤害数字。");
             MaxNumberCount = Config.Bind<int>("config", "MaxNumberCount", 150, "Limit the maximum number of damage numbers that can be displayed simultaneously. Excessive values may significantly reduce performance in high-frequency damage scenarios. 限制可同时显示的伤害数字的最大数量。过高的同屏限制可能会在高频伤害场景严重降低性能。");
 
             GoundEnemyOnHitDamage = Config.Bind<bool>("config", "GoundEnemyOnHitDamage", true, "Whether show the damage number when the ground dark fog is hit. 是否显示地面黑雾的受击伤害数字。");

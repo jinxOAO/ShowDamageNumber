@@ -14,6 +14,7 @@ namespace ShowDamageNumber
     public static class API
     {
         public static Color defaultColor = new Color(0.75f, 0.45f, 0.30f, 1f);
+        public const float LocalDistanceThreshold = 0.7f; // 相当于星球半径的几倍距离外的伤害数字将不显示（只对地面伤害有效，且玩家确实开启了这个限制）
 
         public static DamageNumber ShowDamage(float damage, ref SkillTarget target, EDmgType dmgType = EDmgType.Normal, ESizeMode sizeMode = ESizeMode.Auto, EColorMode colorMode = EColorMode.Auto)
         {
@@ -125,7 +126,28 @@ namespace ShowDamageNumber
                 rot = Quaternion.identity;
                 show = true;
             }
-
+            if(ShowDamageNumberPlugin.LocalHideFar.Value && UIGame.viewMode != EViewMode.Globe) // 如果是按M查看整个星球的模式下，全星球的伤害数字都显示
+            {
+                show = false;
+                PlanetData planet = GameMain.localPlanet;
+                if(planet != null)
+                {
+                    float threshold = planet.radius * LocalDistanceThreshold;
+                    threshold = threshold * threshold;
+                    Vector3 distance = (Vector3)pos - GameMain.mainPlayer.position;
+                    float sum2 = distance.x * distance.x;
+                    if(sum2 < threshold)
+                    {
+                        sum2 += distance.y * distance.y;
+                        if(sum2 < threshold)
+                        {
+                            sum2 += distance.z * distance.z;
+                            if (sum2 < threshold)
+                                show = true;
+                        }
+                    }
+                }
+            }
             if (show)
             {
                 pos = GameMain.spaceSector.skillSystem.sector.GetRelativePose(factory.planet.astroId, pos, rot).position;
