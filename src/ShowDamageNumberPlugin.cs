@@ -20,7 +20,7 @@ namespace ShowDamageNumber
 
         public const string NAME = "ShowDamageNumber";
         public const string GUID = "com.GniMaerd.ShowDamageNumber";
-        public const string VERSION = "1.0.2";
+        public const string VERSION = "1.0.3";
 
         public static ConfigEntry<bool> ShowDamage;
         public static ConfigEntry<bool> LocalHideFar;

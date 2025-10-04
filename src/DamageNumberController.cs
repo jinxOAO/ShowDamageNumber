@@ -88,9 +88,14 @@ namespace ShowDamageNumber
         }
 
         [HarmonyPostfix]
-        [HarmonyPatch(typeof(GameData), "GameTick")]
-        public static void GameTickUpdate(long time)
+        [HarmonyPatch(typeof(GameLogic), "LogicFrame")]
+        public static void GameTickUpdate()
         {
+            if (GameMain.instance == null)
+                return;
+
+
+            long time = GameMain.instance.timei;
             if (ShowDamageNumberPlugin.ShowDamage.Value)
             {
                 CheckPlayerViewStatus();
