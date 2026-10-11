@@ -39,7 +39,7 @@ namespace ShowDamageNumber
         {
             ShowDamage = Config.Bind<bool>("config", "ShowDamage", true, "Whether show the damage number. 是否显示伤害数字。");
             LocalHideFar = Config.Bind<bool>("config", "Local_HideFarDamageNumber", true, "Hide the Damage Number far from player when on a planet. 在行星上时，隐藏距离玩家较远的伤害数字。");
-            MaxNumberCount = Config.Bind<int>("config", "MaxNumberCount", 150, "Limit the maximum number of damage numbers that can be displayed simultaneously. Excessive values may significantly reduce performance in high-frequency damage scenarios. 限制可同时显示的伤害数字的最大数量。过高的同屏限制可能会在高频伤害场景严重降低性能。");
+            MaxNumberCount = Config.Bind<int>("config", "MaxNumberCount", 600, "Limit the maximum number of damage numbers that can be displayed simultaneously. Damage numbers are now batched into a single mesh (1 draw call for text, 1 for icons), so high values cost very little. 限制可同时显示的伤害数字最大数量。伤害数字现已合并为单个网格（文字 1 个绘制调用、图标 1 个），高数值开销也很小。");
 
             GoundEnemyOnHitDamage = Config.Bind<bool>("config", "GoundEnemyOnHitDamage", true, "Whether show the damage number when the ground dark fog is hit. 是否显示地面黑雾的受击伤害数字。");
             SpaceEnemyOnHitDamage = Config.Bind<bool>("config", "SpaceEnemyOnHitDamage", true, "Whether show the damage number when the space dark fog is hit. 是否显示太空黑雾的受击伤害数字。");

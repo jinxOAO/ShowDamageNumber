@@ -11,9 +11,6 @@ namespace ShowDamageNumber
 {
     public class DamageNumber
     {
-        //public static GameObject normObj;
-        public static GameObject glowingObj;
-        public static GameObject glowingObjWithIcon;
         public static Transform parentTrans;
         public static Color[] presetColors;
 
@@ -36,9 +33,17 @@ namespace ShowDamageNumber
         public static Color criticIconColor = new Color(0.75f, 0.2f, 0.1f, 1f);
         public static Color thornmailIconColor = new Color(0.402f, 0.2f, 0.802f, 1);
         public static Sprite criticIconSprite;
-        //public static Sprite thornmailIconSprite;
 
-        // 以为运行时自动计算的数值
+        // 字体与发光材质（复用游戏本体 UI 文字的材质，保证边缘发光外观一致）
+        public static Font dmgFont;
+        public static Material glowMaterial;
+        public static BatchedDamageRenderer batchRenderer;
+
+        // 暴击图标相对数字锚点(左中)的偏移（canvas 单位），在 Init 中按实际 UI 布局高度换算
+        public static float iconOffX;
+        public static float iconOffY;
+
+        // 以下两项为运行时自动计算的数值
         public static int curMidFontSize;
         public static int curBigFontSize;
         public static int curSmallFontSize;
@@ -52,7 +57,6 @@ namespace ShowDamageNumber
         public static void Init()
         {
             criticIconSprite = Resources.Load<Sprite>("icons/signal/signal-503");
-            //thornmailIconSprite = Resources.Load<Sprite>("ui/textures/sprites/sci-fi/shiel-burst-icon");
 
             Transform inGameTrans = GameObject.Find("UI Root/Overlay Canvas/In Game").transform;
             GameObject damageTextsObj = new GameObject("DamageTexts");
@@ -63,22 +67,10 @@ namespace ShowDamageNumber
             damageTextsObj.AddComponent<RectTransform>();
             parentTrans = damageTextsObj.transform;
 
+            // 复用游戏本体一个发光 UI 文字的材质（边缘发光）
             Text oriGlowingText = GameObject.Find("UI Root/Overlay Canvas/In Game/Windows/Replicator Window/queue-group/label").GetComponent<Text>();
-
-            glowingObj = new GameObject("dmg");
-            glowingObj.AddComponent<Text>();
-            glowingObj.GetComponent<Text>().text = "0";
-            glowingObj.GetComponent<Text>().raycastTarget = false;
-            glowingObj.GetComponent<Text>().color = new Color(0.732f, 0.45f, 0f, 1);
-            glowingObj.GetComponent<Text>().font = Resources.Load<Font>("ui/fonts/sairasb");
-            glowingObj.GetComponent<Text>().material = oriGlowingText.material;
-            glowingObj.GetComponent<Text>().alignment = TextAnchor.MiddleCenter;
-            glowingObj.GetComponent<Text>().verticalOverflow = VerticalWrapMode.Overflow;
-            glowingObj.GetComponent<Text>().horizontalOverflow = HorizontalWrapMode.Overflow;
-            glowingObj.AddComponent<Outline>();
-            glowingObj.GetComponent<Outline>().effectColor = Color.black;
-            glowingObj.AddComponent<Shadow>();
-            glowingObj.GetComponent<Shadow>().effectColor = Color.black;
+            glowMaterial = oriGlowingText.material;
+            dmgFont = Resources.Load<Font>("ui/fonts/sairasb");
 
             float actualUILayoutHeight = DSPGame.globalOption.uiLayoutHeight;
             if (DSPGame.globalOption.uiLayoutHeight <= 0)
@@ -86,56 +78,13 @@ namespace ShowDamageNumber
             curMidFontSize = (int)Math.Round(actualUILayoutHeight / 2160 * basicMidFontSize2160p);
             curBigFontSize = (int)Math.Round(actualUILayoutHeight / 2160 * basicBigFontSize2160p);
             curSmallFontSize = (int)Math.Round(actualUILayoutHeight / 2160 * basicSmallFontSize2160p);
-            glowingObj.GetComponent<Text>().fontSize = curMidFontSize;
 
-            glowingObj.transform.localScale = Vector3.one;
-            glowingObj.transform.SetParent(DamageNumber.parentTrans, false);
-            glowingObj.GetComponent<RectTransform>().anchorMax = Vector3.zero;
-            glowingObj.GetComponent<RectTransform>().anchorMin = Vector3.zero;
-            glowingObj.GetComponent<RectTransform>().pivot = new Vector2(0.5f, 0.5f);
-            glowingObj.GetComponent<RectTransform>().anchoredPosition = Vector2.zero;
-            glowingObj.SetActive(false);
+            // 暴击图标偏移：与旧实现中 icon 相对数字 pivot(0,0.5) 的 anchoredPosition 保持一致
+            iconOffX = 10.0f / 2160 * actualUILayoutHeight;
+            iconOffY = -4.0f / 2160 * actualUILayoutHeight;
 
-            glowingObjWithIcon = new GameObject("dmg");
-            glowingObjWithIcon.transform.SetParent(parentTrans, false);
-            glowingObjWithIcon.SetActive(false);
-            glowingObjWithIcon.transform.localScale = Vector3.one;
-            glowingObjWithIcon.AddComponent<Text>();
-            glowingObjWithIcon.GetComponent<Text>().text = "0";
-            glowingObjWithIcon.GetComponent<Text>().raycastTarget = false;
-            glowingObjWithIcon.GetComponent<Text>().color = new Color(0.732f, 0.45f, 0f, 1);
-            glowingObjWithIcon.GetComponent<Text>().font = Resources.Load<Font>("ui/fonts/sairasb");
-            glowingObjWithIcon.GetComponent<Text>().material = oriGlowingText.material;
-            glowingObjWithIcon.GetComponent<Text>().alignment = TextAnchor.MiddleLeft;
-            glowingObjWithIcon.GetComponent<Text>().verticalOverflow = VerticalWrapMode.Overflow;
-            glowingObjWithIcon.GetComponent<Text>().horizontalOverflow = HorizontalWrapMode.Overflow;
-            glowingObjWithIcon.GetComponent<RectTransform>().sizeDelta = new Vector2(300, 300);
-            glowingObjWithIcon.GetComponent<RectTransform>().anchorMax = new Vector2(0, 0f);
-            glowingObjWithIcon.GetComponent<RectTransform>().anchorMin = new Vector2(0, 0f);
-            glowingObjWithIcon.GetComponent<RectTransform>().pivot = new Vector2(0, 0.5f);
-            glowingObjWithIcon.GetComponent<RectTransform>().anchoredPosition3D = new Vector3(0, 0, 0);
-            glowingObjWithIcon.AddComponent<Outline>();
-            glowingObjWithIcon.GetComponent<Outline>().effectColor = Color.black;
-            glowingObjWithIcon.AddComponent<Shadow>();
-            glowingObjWithIcon.GetComponent<Shadow>().effectColor = Color.black;
-            GameObject icon = new GameObject("icon");
-            icon.transform.SetParent(glowingObjWithIcon.transform);
-            icon.AddComponent<Image>();
-            icon.GetComponent<Image>().sprite = Resources.Load<Sprite>("icons/signal/signal-503");
-            icon.GetComponent<Image>().material = oriGlowingText.material;
-            icon.GetComponent<Image>().color = criticIconColor;
-            icon.transform.localScale = Vector3.one;
-            icon.GetComponent<RectTransform>().sizeDelta = new Vector2(curBigFontSize, curBigFontSize);
-            icon.GetComponent<RectTransform>().anchorMax = new Vector2(0, 0.5f);
-            icon.GetComponent<RectTransform>().anchorMin = new Vector2(0, 0.5f);
-            icon.GetComponent<RectTransform>().pivot = new Vector2(1, 0.5f);
-            icon.GetComponent<RectTransform>().anchoredPosition3D = new Vector3(10.0f / 2160 * actualUILayoutHeight,  -4.0f / 2160 * actualUILayoutHeight, 0);
-            icon.AddComponent<Outline>();
-            icon.GetComponent<Outline>().effectColor = Color.black;
-            icon.GetComponent<Outline>().effectDistance = new Vector2(2, -2);
-            icon.AddComponent<Shadow>();
-            icon.GetComponent<Shadow>().effectColor = Color.black;
-            icon.SetActive(false);
+            // 创建单批次网格渲染器（整个系统仅 1 个，替代原先成百上千个 Text 对象）
+            batchRenderer = BatchedDamageRenderer.Create(parentTrans as RectTransform, glowMaterial, dmgFont, criticIconSprite);
 
             presetColors = new Color[10];
             presetColors[(int)EColorMode.Auto] = new Color(0.732f, 0.45f, 0f, 1);
@@ -147,7 +96,6 @@ namespace ShowDamageNumber
             presetColors[(int)EColorMode.PresetGray] = new Color(0.45f, 0.45f, 0.45f, 1);
             presetColors[(int)EColorMode.PresetGreen] = new Color(0.2f, 0.8f, 0.2f, 0.917f);
             presetColors[(int)EColorMode.PresetBlue] = new Color(0.2f, 0.55f, 0.72f, 1f);
-            //presetColors[(int)EColorMode.PresetBlue] = new Color(0.2f, 0.55f, 0.72f, 1f);
         }
 
         public static void UpdateGameHistoryData()
@@ -177,12 +125,21 @@ namespace ShowDamageNumber
         public int localEnemyId;
 
         public int time;
-        public GameObject obj;
-        public Text text;
         public float x;
         public float y;
-        public int autoSize;
         public int xDirection;
+
+        // ==== 供批次渲染器读取的呈现字段（取代旧的 GameObject / Text / Image 组件）====
+        public bool active;
+        public string displayText;   // 最终显示文本
+        public int fontSize;         // 当前字号（canvas 单位）
+        public Color color;          // 当前颜色（含淡出 alpha）
+        public float scale;          // 当前缩放（旧 localScale）
+        public Vector2 anchorPos;    // 旧 anchoredPosition，数字左中锚点位置
+        public bool showIcon;        // 暴击图标
+        public Color iconColor;      // 图标颜色（含淡出 alpha）
+        public float iconSize;       // 图标边长
+        public Vector2 iconCenter;   // 图标中心相对数字锚点的偏移
 
         public DamageNumber(int index, float damage, Vector3 pos, bool isGroundTarget, EDmgType dmgType = EDmgType.Normal, ESizeMode sizeMode = ESizeMode.Auto, EColorMode colorMode = EColorMode.Auto)
         {
@@ -192,27 +149,8 @@ namespace ShowDamageNumber
             this.sizeMode = sizeMode;
             this.colorMode = colorMode;
             time = 0;
+            scale = type == EDmgType.Dot || type == EDmgType.DotEnding ? 0.5f : 1f;
             Vector2 uiPos;
-            obj = GameObject.Instantiate(glowingObjWithIcon);
-            if (dmgType == EDmgType.Crit)
-            {
-                obj.transform.Find("icon").gameObject.SetActive(true);
-                obj.transform.Find("icon").GetComponent<Image>().sprite = criticIconSprite;
-                obj.transform.Find("icon").GetComponent<Image>().color = criticIconColor;
-            }
-            //else if (dmgType == EDmgType.Thornmail)
-            //{
-            //    obj.transform.Find("icon").gameObject.SetActive(true);
-            //    obj.transform.Find("icon").GetComponent<Image>().sprite = thornmailIconSprite;
-            //    obj.transform.Find("icon").GetComponent<Image>().color = thornmailIconColor;
-            //}
-            else
-            {
-                obj.transform.Find("icon").gameObject.SetActive(false);
-            }
-
-            obj.transform.SetParent(parentTrans, false);
-            obj.transform.localScale = type == EDmgType.Dot || type == EDmgType.DotEnding ? new Vector3(0.5f, 0.5f, 0.5f) : Vector3.one;
             API.WorldPointIntoScreen(pos, parentTrans as RectTransform, out uiPos);
             if (dmgType == EDmgType.ShieldRisist)
             {
@@ -224,7 +162,7 @@ namespace ShowDamageNumber
                 x = uiPos.x + (float)(Utils.randSeed.Value.NextDouble() - 0.5) * curBigFontSize / 2 + curBigFontSize;
                 y = uiPos.y + (float)(Utils.randSeed.Value.NextDouble() - 0.5) * curBigFontSize / 2 + 1.5f * curBigFontSize;
             }
-            obj.GetComponent<RectTransform>().anchoredPosition = new Vector2(x, y);
+            anchorPos = new Vector2(x, y);
             xDirection = Utils.randSeed.Value.NextDouble() > 0.5 ? 1 : -1;
             prefix = "";
             suffix = "";
@@ -236,15 +174,19 @@ namespace ShowDamageNumber
             {
                 suffix = "!";
             }
-            text = obj.GetComponent<Text>();
-            text.text = prefix + ((int)damage).ToString() + suffix;
-            obj.SetActive(true);
+            displayText = prefix + ((int)damage).ToString() + suffix;
+
+            showIcon = type == EDmgType.Crit;
 
             this.isGroundTarget = isGroundTarget;
 
             AutoSize();
             AutoColor();
-            //Update();
+            if (showIcon)
+            {
+                iconColor = criticIconColor;
+            }
+            active = true;
         }
 
         public void SetForNewDamage(int index, float damage, Vector3 pos, bool isGroundTarget, EDmgType dmgType = EDmgType.Normal, ESizeMode sizeMode = ESizeMode.Auto, EColorMode colorMode = EColorMode.Auto)
@@ -255,30 +197,9 @@ namespace ShowDamageNumber
             this.sizeMode = sizeMode;
             this.colorMode = colorMode;
             time = 0;
-            if (obj == null)
-            {
-                Remove();
-                return;
-            }
 
-            if (dmgType == EDmgType.Crit)
-            {
-                obj.transform.Find("icon").gameObject.SetActive(true);
-                obj.transform.Find("icon").GetComponent<Image>().sprite = criticIconSprite;
-                obj.transform.Find("icon").GetComponent<Image>().color = criticIconColor;
-            }
-            //else if (dmgType == EDmgType.Thornmail)
-            //{
-            //    obj.transform.Find("icon").gameObject.SetActive(true);
-            //    obj.transform.Find("icon").GetComponent<Image>().sprite = thornmailIconSprite;
-            //    obj.transform.Find("icon").GetComponent<Image>().color = thornmailIconColor;
-            //}
-            else
-            {
-                obj.transform.Find("icon").gameObject.SetActive(false);
-            }
-            Vector2 uiPos; 
-            obj.transform.localScale = type == EDmgType.Dot || type == EDmgType.DotEnding ? new Vector3(0.5f, 0.5f, 0.5f) : Vector3.one;
+            scale = type == EDmgType.Dot || type == EDmgType.DotEnding ? 0.5f : 1f;
+            Vector2 uiPos;
             API.WorldPointIntoScreen(pos, parentTrans as RectTransform, out uiPos);
             if (dmgType == EDmgType.ShieldRisist)
             {
@@ -290,7 +211,7 @@ namespace ShowDamageNumber
                 x = uiPos.x + (float)(Utils.randSeed.Value.NextDouble() - 0.5) * curBigFontSize / 2 + curBigFontSize;
                 y = uiPos.y + (float)(Utils.randSeed.Value.NextDouble() - 0.5) * curBigFontSize / 2 + 1.5f * curBigFontSize;
             }
-            obj.GetComponent<RectTransform>().anchoredPosition = new Vector2(x, y);
+            anchorPos = new Vector2(x, y);
             xDirection = Utils.randSeed.Value.NextDouble() > 0.5 ? 1 : -1;
             prefix = "";
             suffix = "";
@@ -306,14 +227,19 @@ namespace ShowDamageNumber
             {
                 prefix = "❃ ";
             }
-            text = obj.GetComponent<Text>();
-            text.text = prefix + ((int)damage).ToString() + suffix;
+            displayText = prefix + ((int)damage).ToString() + suffix;
+
+            showIcon = type == EDmgType.Crit;
 
             this.isGroundTarget = isGroundTarget;
 
             AutoSize();
             AutoColor();
-            obj.SetActive(true);
+            if (showIcon)
+            {
+                iconColor = criticIconColor;
+            }
+            active = true;
         }
 
         public void SetTargetData(ref SkillTargetLocal target)
@@ -324,7 +250,7 @@ namespace ShowDamageNumber
         public void AddDotDamage(float damage)
         {
             this.damage += damage;
-            text.text = ((int)this.damage).ToString();
+            displayText = ((int)this.damage).ToString();
             time = 0;
             AutoSize();
             AutoColor();
@@ -332,11 +258,6 @@ namespace ShowDamageNumber
 
         public void Update()
         {
-            if(obj == null)
-            {
-                OnNullObj();
-            }
-
             if (time > destroyFrame)
             {
                 Remove();
@@ -346,16 +267,16 @@ namespace ShowDamageNumber
             // dot伤害跟随目标位置，dot伤害最终阶段不移动。暴击伤害不跳动，也不跟随。其他伤害文本会以初始击中位置为标准进行一次跳动。
             if(type == EDmgType.ShieldRisist)
             {
-                obj.GetComponent<RectTransform>().anchoredPosition = new Vector2(x, y - time * ShdResistNumDropSpeed);
+                anchorPos = new Vector2(x, y - time * ShdResistNumDropSpeed);
                 if(time > onhitFrame) // 护盾减伤提前开始变淡
-                    text.color = new Color(text.color.r, text.color.g, text.color.b, text.color.a - fadePerFrame);
+                    color = new Color(color.r, color.g, color.b, color.a - fadePerFrame);
                 AutoScale();
                 time++;
                 return;
             }
             else if (type != EDmgType.Dot && type != EDmgType.DotEnding && type != EDmgType.Crit)
             {
-                obj.GetComponent<RectTransform>().anchoredPosition = new Vector2(x + time * xSpeedPerFrame * xDirection, y + yA * time * (time - y0Frame));
+                anchorPos = new Vector2(x + time * xSpeedPerFrame * xDirection, y + yA * time * (time - y0Frame));
             }
             else if (type == EDmgType.Dot)
             {
@@ -372,14 +293,14 @@ namespace ShowDamageNumber
                             pos = GameMain.spaceSector.skillSystem.sector.GetRelativePose(factory.planet.astroId, pos, rot).position;
                             Vector2 uiPos;
                             API.WorldPointIntoScreen(pos, parentTrans as RectTransform, out uiPos);
-                            obj.GetComponent<RectTransform>().anchoredPosition = new Vector2(uiPos.x + curBigFontSize, uiPos.y + curBigFontSize); // 初始获得的位置偏左下，不知道为啥
+                            anchorPos = new Vector2(uiPos.x + curBigFontSize, uiPos.y + curBigFontSize); // 初始获得的位置偏左下，不知道为啥
                         }
                         else // 说明单位寄了
                         {
                             type = EDmgType.DotEnding;
                             time = (int)(fadeBeginFrame * 0.6f);
                             if(DamageNumberController.main.dotArray.ContainsKey(this.localEnemyId))
-                                DamageNumberController.main.dotArray.Remove(this.localEnemyId); // 从Dot列表中移除                            
+                                DamageNumberController.main.dotArray.Remove(this.localEnemyId); // 从Dot列表中移除
                         }
                     }
                 }
@@ -392,14 +313,10 @@ namespace ShowDamageNumber
 
             if(time > fadeBeginFrame)
             {
-                text.color = new Color(text.color.r, text.color.g, text.color.b, text.color.a - fadePerFrame);
+                color = new Color(color.r, color.g, color.b, color.a - fadePerFrame);
                 if(type == EDmgType.Crit)
                 {
-                    Image icon = obj.transform.Find("icon")?.GetComponent<Image>();
-                    if(icon != null)
-                    {
-                        icon.color = new Color(icon.color.r, icon.color.g, icon.color.b, text.color.a);
-                    }
+                    iconColor = new Color(iconColor.r, iconColor.g, iconColor.b, color.a);
                 }
             }
             if(type == EDmgType.Dot)
@@ -415,10 +332,7 @@ namespace ShowDamageNumber
         {
             if(type == EDmgType.Dot && DamageNumberController.main.dotArray.ContainsKey(this.localEnemyId))
                 DamageNumberController.main.dotArray.Remove(this.localEnemyId);
-            //if(obj != null)
-            //    GameObject.Destroy(obj);
-            if(obj != null)
-                obj.SetActive(false);
+            active = false;
             if (index >= 0 && index < DamageNumberController.main.cursor)
             {
                 while (DamageNumberController.main.recycleCursor >= DamageNumberController.main.recycleArray.Length)
@@ -435,46 +349,39 @@ namespace ShowDamageNumber
             localEnemyId = -1;
         }
 
-        public void OnNullObj()
-        {
-            Remove();
-        }
-
         public void AutoSize()
         {
             if(type== EDmgType.Dot)
             {
                 int size = (int)(curSmallFontSize + damage * dotSizeIncPerDamage);
-                text.fontSize = size > 1.3f * curBigFontSize ? (int)(1.3f * curBigFontSize) : size;
+                fontSize = size > 1.3f * curBigFontSize ? (int)(1.3f * curBigFontSize) : size;
             }
             else if (type == EDmgType.Crit)
             {
-                text.fontSize = curBigFontSize;
-                obj.transform.Find("icon").GetComponent<RectTransform>().sizeDelta = new Vector2(text.fontSize, text.fontSize);
+                fontSize = curBigFontSize;
+                iconSize = fontSize;
+                iconCenter = new Vector2(iconOffX - 0.5f * iconSize, iconOffY);
             }
             else if(sizeMode == ESizeMode.Auto)
             {
                 if(isGroundTarget)
                 {
                     if (damage < curSmallFontLocalDmgThreshold)
-                        text.fontSize = curSmallFontSize;
+                        fontSize = curSmallFontSize;
                     else if (damage < curBigFontLocalDmgThreshold)
-                        text.fontSize = curMidFontSize;
-                    else 
-                        text.fontSize = curBigFontSize;
+                        fontSize = curMidFontSize;
+                    else
+                        fontSize = curBigFontSize;
                 }
                 else
                 {
                     if (damage < curSmallFontSpaceDmgThreshold)
-                        text.fontSize = curSmallFontSize;
+                        fontSize = curSmallFontSize;
                     else if (damage < curBigFontSpaceDmgThreshold)
-                        text.fontSize = curMidFontSize;
+                        fontSize = curMidFontSize;
                     else
-                        text.fontSize = curBigFontSize;
+                        fontSize = curBigFontSize;
                 }
-
-                //if(type == EDmgType.Thornmail)
-                //    obj.transform.Find("icon").GetComponent<RectTransform>().sizeDelta = new Vector2(text.fontSize, text.fontSize);
             }
         }
 
@@ -482,12 +389,11 @@ namespace ShowDamageNumber
         {
             if (type != EDmgType.Dot && time <= onhitFrame)
             {
-                float scale = 1 - (time * 0.5f / onhitFrame);
-                obj.transform.localScale = new Vector3(scale, scale, scale);
+                scale = 1 - (time * 0.5f / onhitFrame);
 
                 // 由于现在文本对齐改成了左对齐，所以direction为右方向的时候，会在数字收缩的过程中有一种没有右移的感觉，因此
                 if (xDirection > 0 && type != EDmgType.DotEnding && type != EDmgType.Crit)
-                    x += xSpeedPerFrame * text.fontSize / curSmallFontSize;
+                    x += xSpeedPerFrame * fontSize / curSmallFontSize;
             }
         }
 
@@ -500,7 +406,7 @@ namespace ShowDamageNumber
                     float ratio = damage / curSmallFontLocalDmgThreshold;
                     Color c0 = presetColors[(int)EColorMode.PresetWhite];
                     Color c1 = presetColors[(int)EColorMode.Auto];
-                    text.color = new Color(c0.r *(1- ratio) + c1.r * ratio, c0.g * (1 - ratio) + c1.g * ratio, c0.b * (1 - ratio) + c1.b * ratio, c0.a * (1 - ratio) + c1.a * ratio);
+                    color = new Color(c0.r *(1- ratio) + c1.r * ratio, c0.g * (1 - ratio) + c1.g * ratio, c0.b * (1 - ratio) + c1.b * ratio, c0.a * (1 - ratio) + c1.a * ratio);
                 }
                 else if (damage < curBigFontLocalDmgThreshold)
                 {
@@ -508,45 +414,45 @@ namespace ShowDamageNumber
                     float ratio = (damage - curSmallFontLocalDmgThreshold) / (curBigFontLocalDmgThreshold - curSmallFontLocalDmgThreshold);
                     Color c0 = presetColors[(int)EColorMode.Auto];
                     Color c1 = presetColors[(int)EColorMode.PresetRed];
-                    text.color = new Color(c0.r * (1 - ratio) + c1.r * ratio, c0.g * (1 - ratio) + c1.g * ratio, c0.b * (1 - ratio) + c1.b * ratio, c0.a * (1 - ratio) + c1.a * ratio);
+                    color = new Color(c0.r * (1 - ratio) + c1.r * ratio, c0.g * (1 - ratio) + c1.g * ratio, c0.b * (1 - ratio) + c1.b * ratio, c0.a * (1 - ratio) + c1.a * ratio);
                 }
                 else
                 {
-                    text.color = presetColors[(int)EColorMode.PresetRed];
+                    color = presetColors[(int)EColorMode.PresetRed];
                 }
             }
             else if (type == EDmgType.Crit)
             {
-                text.color = presetColors[(int)EColorMode.PresetRed];
+                color = presetColors[(int)EColorMode.PresetRed];
             }
             else if (type == EDmgType.ShieldRisist)
             {
-                text.color = presetColors[(int)EColorMode.PresetBlue];
+                color = presetColors[(int)EColorMode.PresetBlue];
             }
             else if (colorMode == EColorMode.Auto)
             {
                 if (isGroundTarget)
                 {
                     if (damage < curSmallFontLocalDmgThreshold)
-                        text.color = presetColors[(int)EColorMode.PresetWhite];
+                        color = presetColors[(int)EColorMode.PresetWhite];
                     else if (damage < curBigFontLocalDmgThreshold)
-                        text.color = presetColors[(int)EColorMode.Auto];
+                        color = presetColors[(int)EColorMode.Auto];
                     else
-                        text.color = presetColors[(int)EColorMode.PresetRed];
+                        color = presetColors[(int)EColorMode.PresetRed];
                 }
                 else
                 {
                     if (damage < curSmallFontSpaceDmgThreshold)
-                        text.color = presetColors[(int)EColorMode.PresetWhite];
+                        color = presetColors[(int)EColorMode.PresetWhite];
                     else if (damage < curBigFontSpaceDmgThreshold)
-                        text.color = presetColors[(int)EColorMode.Auto];
+                        color = presetColors[(int)EColorMode.Auto];
                     else
-                        text.color = presetColors[(int)EColorMode.PresetRed];
+                        color = presetColors[(int)EColorMode.PresetRed];
                 }
             }
             else
             {
-                text.color = presetColors[(int)colorMode];
+                color = presetColors[(int)colorMode];
             }
         }
     }

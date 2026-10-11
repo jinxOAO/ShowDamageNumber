@@ -116,6 +116,9 @@ namespace ShowDamageNumber
                     if (main.activeArray[i] != null && main.activeArray[i].index >= 0)
                         main.activeArray[i].Update();
                 }
+                // 所有数字合成一个网格、单个 CanvasRenderer 绘制（这是本次重构消除卡顿的核心）
+                if (DamageNumber.batchRenderer != null)
+                    DamageNumber.batchRenderer.Rebuild(main.activeArray, main.cursor);
                 //listForClearNull.Clear();
                 //foreach (var pair in main.dotArray)
                 //{
@@ -164,27 +167,20 @@ namespace ShowDamageNumber
 
         public static void ForceRemoveAllNumbers()
         {
-            int i = 0;
-            while (i < DamageNumber.parentTrans.childCount)
-            {
-                if (DamageNumber.parentTrans.GetChild(i).gameObject.name != "dmg")
-                {
-                    GameObject.DestroyImmediate(DamageNumber.parentTrans.GetChild(i).gameObject);
-                }
-                else
-                {
-                    i++;
-                }
-            }
+            // 不再为每个数字创建 GameObject，因此这里只需停用所有数字、清空数据并上传一个空网格。
             int length = main.activeArray.Length;
             for (int j = 0; j < length; j++)
             {
+                if (main.activeArray[j] != null)
+                    main.activeArray[j].active = false;
                 main.activeArray[j] = null;
             }
             main.dotArray.Clear();
             main.cursor = 0;
             main.recycleCursor = 0;
             lastNFrameShdDmgTotal = 0;
+            if (DamageNumber.batchRenderer != null)
+                DamageNumber.batchRenderer.Rebuild(main.activeArray, 0);
         }
 
         public static void ShowHideDamageNumberOnChange()

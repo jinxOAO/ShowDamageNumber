@@ -78,6 +78,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="src\API.cs" />
+    <Compile Include="src\BatchedDamageRenderer.cs" />
     <Compile Include="src\DamageNumber.cs" />
     <Compile Include="src\DamageNumberController.cs" />
     <Compile Include="src\OnDamagePatcher.cs" />

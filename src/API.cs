@@ -194,7 +194,7 @@ namespace ShowDamageNumber
                     {
                         DamageNumberController.main.dotArray[targetId].AddDotDamage(damage);
                     }
-                    else if (DamageNumberController.main.dotArray.Count < 150)
+                    else if (DamageNumberController.main.dotArray.Count < ShowDamageNumberPlugin.MaxNumberCount.Value)
                     {
                         int index = ArrangeNewNormalIndex();
                         if (index < 0)
