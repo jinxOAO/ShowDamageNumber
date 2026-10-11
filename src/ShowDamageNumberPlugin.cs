@@ -25,6 +25,7 @@ namespace ShowDamageNumber
         public static ConfigEntry<bool> ShowDamage;
         public static ConfigEntry<bool> LocalHideFar;
         public static ConfigEntry<int> MaxNumberCount;
+        public static ConfigEntry<int> DegradeOutlineThreshold;
         public static ConfigEntry<bool> GoundEnemyOnHitDamage;
         public static ConfigEntry<bool> SpaceEnemyOnHitDamage;
         public static ConfigEntry<bool> IcarusShieldOnHitDamage;
@@ -40,6 +41,7 @@ namespace ShowDamageNumber
             ShowDamage = Config.Bind<bool>("config", "ShowDamage", true, "Whether show the damage number. 是否显示伤害数字。");
             LocalHideFar = Config.Bind<bool>("config", "Local_HideFarDamageNumber", true, "Hide the Damage Number far from player when on a planet. 在行星上时，隐藏距离玩家较远的伤害数字。");
             MaxNumberCount = Config.Bind<int>("config", "MaxNumberCount", 150, "Limit the maximum number of damage numbers that can be displayed simultaneously. 限制可同时显示的伤害数字最大数量。");
+            DegradeOutlineThreshold = Config.Bind<int>("config", "DegradeOutlineOnHeavyLoad", 10, "When visible damage numbers exceed this count, each number's outline drops from 4 copies to 1 to save vertices (looks slightly thinner only under extreme load); <=0 never degrades. 可见伤害数字数超过该值时，自动把每个数字的描边从 4 份降为 1 份以节省顶点（仅在极端数量下描边略变细）；<=0 表示从不降级。");
 
             GoundEnemyOnHitDamage = Config.Bind<bool>("config", "GoundEnemyOnHitDamage", true, "Whether show the damage number when the ground dark fog is hit. 是否显示地面黑雾的受击伤害数字。");
             SpaceEnemyOnHitDamage = Config.Bind<bool>("config", "SpaceEnemyOnHitDamage", true, "Whether show the damage number when the space dark fog is hit. 是否显示太空黑雾的受击伤害数字。");

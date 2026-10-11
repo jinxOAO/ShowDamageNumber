@@ -139,7 +139,8 @@ namespace ShowDamageNumber
         public bool showIcon;        // 暴击图标
         public Color iconColor;      // 图标颜色（含淡出 alpha）
         public float iconSize;       // 图标边长
-        public Vector2 iconCenter;   // 图标中心相对数字锚点的偏移
+        public Vector2 iconCenter;  // 图标中心相对数字锚点的偏移
+        public bool behindCam;      // 目标在相机背后时不渲染（修复背后投影镜像）
 
         public DamageNumber(int index, float damage, Vector3 pos, bool isGroundTarget, EDmgType dmgType = EDmgType.Normal, ESizeMode sizeMode = ESizeMode.Auto, EColorMode colorMode = EColorMode.Auto)
         {
@@ -151,11 +152,12 @@ namespace ShowDamageNumber
             time = 0;
             scale = type == EDmgType.Dot || type == EDmgType.DotEnding ? 0.5f : 1f;
             Vector2 uiPos;
-            API.WorldPointIntoScreen(pos, parentTrans as RectTransform, out uiPos);
+            behindCam = !API.WorldPointIntoScreen(pos, parentTrans as RectTransform, out uiPos);
             if (dmgType == EDmgType.ShieldRisist)
             {
                 x = 0;
                 y = 0;
+                behindCam = false; // 护盾减伤数字固定在屏幕中心，不受背后投影判定影响
             }
             else
             {
@@ -200,11 +202,12 @@ namespace ShowDamageNumber
 
             scale = type == EDmgType.Dot || type == EDmgType.DotEnding ? 0.5f : 1f;
             Vector2 uiPos;
-            API.WorldPointIntoScreen(pos, parentTrans as RectTransform, out uiPos);
+            behindCam = !API.WorldPointIntoScreen(pos, parentTrans as RectTransform, out uiPos);
             if (dmgType == EDmgType.ShieldRisist)
             {
                 x = 0;
                 y = 0;
+                behindCam = false; // 护盾减伤数字固定在屏幕中心，不受背后投影判定影响
             }
             else
             {
@@ -292,7 +295,7 @@ namespace ShowDamageNumber
                             Quaternion rot = ptr2.rot;
                             pos = GameMain.spaceSector.skillSystem.sector.GetRelativePose(factory.planet.astroId, pos, rot).position;
                             Vector2 uiPos;
-                            API.WorldPointIntoScreen(pos, parentTrans as RectTransform, out uiPos);
+                            behindCam = !API.WorldPointIntoScreen(pos, parentTrans as RectTransform, out uiPos);
                             anchorPos = new Vector2(uiPos.x + curBigFontSize, uiPos.y + curBigFontSize); // 初始获得的位置偏左下，不知道为啥
                         }
                         else // 说明单位寄了

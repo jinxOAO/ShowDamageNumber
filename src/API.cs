@@ -241,7 +241,13 @@ namespace ShowDamageNumber
 
         public static bool WorldPointIntoScreen(Vector3 worldPoint, RectTransform rect, out Vector2 rectPoint)
         {
-            Vector2 screenPoint = Camera.main.WorldToScreenPoint(worldPoint);
+            Vector3 screenPoint = Camera.main.WorldToScreenPoint(worldPoint);
+            // z <= 0 表示目标在相机背后：WorldToScreenPoint 会返回镜像的屏幕坐标，导致数字出现在错误位置。
+            if (screenPoint.z <= 0f)
+            {
+                rectPoint = Vector2.zero;
+                return false;
+            }
             RectTransformUtility.ScreenPointToLocalPointInRectangle(rect, screenPoint, UIRoot.instance.overlayCanvas.worldCamera, out rectPoint);
             return true;
         }

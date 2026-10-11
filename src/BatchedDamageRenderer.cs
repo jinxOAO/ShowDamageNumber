@@ -28,6 +28,8 @@ namespace ShowDamageNumber
 
         // 单个 Graphic 的顶点上限，留出余量以避免超出 16 位索引(65535)
         private const int MaxVertsPerGraphic = 60000;
+        // 字形模板缓存上限：Dot 伤害字号连续会不断产生新键，需封顶避免缓存无限增长(内存/重建开销)
+        private const int MaxGlyphCache = 8192;
 
         private readonly Dictionary<KeyValuePair<int, string>, List<Glyph>> _glyphCache
             = new Dictionary<KeyValuePair<int, string>, List<Glyph>>();
@@ -40,6 +42,13 @@ namespace ShowDamageNumber
         private IconTemplate _iconTpl;
         private Texture _lastFontTex;
         private bool _textureChanged;
+
+        // 本帧可见剔除范围（canvas 单位，相对屏幕中心）
+        private float _cullX;
+        private float _cullY;
+
+        // 每个数字的文字副本数：6=阴影+4描边+本体(默认)；3=阴影+1描边+本体(高负载降级)。本帧统一，保证同批一致。
+        private int _copies = 6;
 
         private readonly List<BatchedDamageGraphic> _textPool = new List<BatchedDamageGraphic>();
         private readonly List<BatchedDamageGraphic> _iconPool = new List<BatchedDamageGraphic>();
@@ -115,13 +124,21 @@ namespace ShowDamageNumber
 
         public void Rebuild(IReadOnlyList<DamageNumber> list, int count)
         {
-            // 预热：先把本帧所有需要的字符串一次性请求进图集，触发其中可能的图集扩容/重建。
+            // 可见范围（canvas 单位，anchorPos 相对屏幕中心）：屏幕外的数字不生成网格——它们本来就看不见，
+            // 但旧逻辑仍把它们(含 6 份描边/阴影副本)全铺进网格，白白消耗 CPU 与顶点。这是进一步优化的最大头。
+            ComputeViewBounds();
+
+            // 预热：先把本帧所有【可见】且需要的字符串一次性请求进图集，触发其中可能的图集扩容/重建。
             // 这样后续读取 GetCharacterInfo 时图集已稳定，避免“边读边扩容”导致同帧内早期字形 UV 失效(碎裂拼接)。
+            int visibleCount = 0;
             for (int i = 0; i < count; i++)
             {
                 var d = list[i];
-                if (d == null || !d.active || string.IsNullOrEmpty(d.displayText) || d.fontSize <= 0)
+                if (d == null || !d.active || IsOffScreen(d))
                     continue;
+                if (string.IsNullOrEmpty(d.displayText) || d.fontSize <= 0)
+                    continue;
+                visibleCount++;
                 _font.RequestCharactersInTexture(d.displayText, d.fontSize, FontStyle.Normal);
             }
 
@@ -132,6 +149,10 @@ namespace ShowDamageNumber
                 _textureChanged = false;
             }
 
+            // 高负载自动降级：可见数字超阈值时把描边 4 份→ 1 份（副本 6→3），顶点与构建 CPU 直接减半；普通战斗不变
+            int threshold = ShowDamageNumberPlugin.DegradeOutlineThreshold.Value;
+            _copies = (threshold > 0 && visibleCount > threshold) ? 3 : 6;
+
             int textGI = 0, iconGI = 0;
             var curText = GetGraphic(_textPool, 0, _fontTex);
             curText.Begin();
@@ -140,13 +161,13 @@ namespace ShowDamageNumber
             for (int i = 0; i < count; i++)
             {
                 var d = list[i];
-                if (d == null || !d.active)
+                if (d == null || !d.active || IsOffScreen(d))
                     continue;
 
                 var glyphs = GetGlyphs(d.displayText, d.fontSize);
 
-                // 该数字需要的文字顶点数（shadow+4×outline+base = 6 份），整份不跨 Graphic 以保证同一数字的绘制顺序
-                int needVerts = (glyphs != null ? glyphs.Count : 0) * 4 * 6;
+                // 该数字需要的文字顶点数（副本数 × 每字 4 顶点），整份不跨 Graphic 以保证同一数字的绘制顺序
+                int needVerts = (glyphs != null ? glyphs.Count : 0) * 4 * _copies;
                 if (needVerts > 0 && curText.Count + needVerts > MaxVertsPerGraphic)
                 {
                     curText.End();
@@ -186,6 +207,25 @@ namespace ShowDamageNumber
             for (int k = iconUsed; k < _iconPool.Count; k++) _iconPool[k].enabled = false;
         }
 
+        private void ComputeViewBounds()
+        {
+            // canvas 单位：屏幕高度 == uiLayoutHeight(参考分辨率高度，matchHeight)，宽度按屏幕宽高比换算
+            float lh = UICanvasScalerHandler.uiLayoutHeight;
+            if (lh <= 0)
+                lh = UICanvasScalerHandler.GetSuggestUILayoutHeight(Screen.height);
+            float aspect = Screen.height > 0 ? (float)Screen.width / Screen.height : 1f;
+            float margin = DamageNumber.curBigFontSize * 4f; // 预留数字上飘/右移与字号余量，确保不会误剔可见数字
+            _cullX = lh * 0.5f * aspect + margin;
+            _cullY = lh * 0.5f + margin;
+        }
+
+        private bool IsOffScreen(DamageNumber d)
+        {
+            if (d.behindCam) return true; // 目标在相机背后，投影坐标会镜像到错误位置，直接不渲染
+            var p = d.anchorPos;
+            return p.x < -_cullX || p.x > _cullX || p.y < -_cullY || p.y > _cullY;
+        }
+
         private void UpdateFontTexture()
         {
             if (_font != null && _font.material != null)
@@ -207,12 +247,16 @@ namespace ShowDamageNumber
             Color32 black = new Color32(0, 0, 0, col.a); // 描边/阴影与本体同步淡出，避免淡出时残留一个不透明的黑数字
             Vector2 pivot = d.anchorPos;
 
-            // 顺序与旧实现一致：先 Shadow，再 4 向 Outline，最后 Base（Base 覆盖在上层）
+            // 顺序与旧实现一致：先 Shadow，再 Outline，最后 Base（Base 覆盖在上层）
             EmitGlyphSet(g, glyphs, pivot, ShadowDist * s, black, s);
             EmitGlyphSet(g, glyphs, pivot, new Vector2(OutlineDist.x, OutlineDist.y) * s, black, s);
-            EmitGlyphSet(g, glyphs, pivot, new Vector2(-OutlineDist.x, -OutlineDist.y) * s, black, s);
-            EmitGlyphSet(g, glyphs, pivot, new Vector2(OutlineDist.x, -OutlineDist.y) * s, black, s);
-            EmitGlyphSet(g, glyphs, pivot, new Vector2(-OutlineDist.x, OutlineDist.y) * s, black, s);
+            if (_copies >= 6)
+            {
+                // 完整 4 向描边
+                EmitGlyphSet(g, glyphs, pivot, new Vector2(-OutlineDist.x, -OutlineDist.y) * s, black, s);
+                EmitGlyphSet(g, glyphs, pivot, new Vector2(OutlineDist.x, -OutlineDist.y) * s, black, s);
+                EmitGlyphSet(g, glyphs, pivot, new Vector2(-OutlineDist.x, OutlineDist.y) * s, black, s);
+            }
             EmitGlyphSet(g, glyphs, pivot, Vector2.zero, col, s);
         }
 
@@ -326,6 +370,9 @@ namespace ShowDamageNumber
             }
 
             _glyphCache[key] = list;
+            // 封顶：Dot 连续字号会持续产生新键，超过上限则整体清空(下帧会重建，数字总量本就有限)
+            if (_glyphCache.Count > MaxGlyphCache)
+                _glyphCache.Clear();
             return list;
         }
 
@@ -342,6 +389,8 @@ namespace ShowDamageNumber
             public int Count => _verts.Count;
 
             public override Texture mainTexture => batchTexture != null ? batchTexture : base.mainTexture;
+
+            private Texture _appliedTex;
 
             public void Begin() { _verts.Clear(); }
 
@@ -364,7 +413,12 @@ namespace ShowDamageNumber
             public void End()
             {
                 SetVerticesDirty();
-                SetMaterialDirty();
+                // 仅当绑定的纹理实例发生变化才重建材质批次（材质/图集引用变化时才需要），避免每帧 SetMaterialDirty 的额外开销
+                if (batchTexture != _appliedTex)
+                {
+                    _appliedTex = batchTexture;
+                    SetMaterialDirty();
+                }
             }
 
             protected override void OnPopulateMesh(VertexHelper vh)
